@@ -1,0 +1,58 @@
+{
+  "mappings": {
+    "properties": {
+      "depth1_do": {
+        "type": "text",
+        "fields": {
+          "keywords": {
+            "type": "keyword"
+          }
+        }
+      },
+      "depth2_si_gun": {
+        "type": "text",
+        "fields": {
+          "keywords": {
+            "type": "keyword"
+          }
+        }
+      },
+      "depth3_gu": {
+        "type": "text",
+        "fields": {
+          "keywords": {
+            "type": "keyword"
+          }
+        }
+      },
+      "depth4_ub_myn_dong": {
+        "type": "text",
+        "fields": {
+          "keywords": {
+            "type": "keyword"
+          }
+        }
+      },
+      "legal_names": {
+        "type": "text",
+        "fields": {
+          "keywords": {
+            "type": "keyword"
+          }
+        }
+      }
+    }
+  },
+  "settings": {
+    "index": {
+      "similarity": {
+        "default": {
+          "type": "boolean"
+        }
+      },
+      "refresh_interval": "-1",
+      "number_of_shards": "3",
+      "number_of_replicas": "0"
+    }
+  }
+}
