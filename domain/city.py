@@ -1,77 +1,151 @@
+import copy
+import re
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import List
 
 from api.pdr_api import PdrResponse
 from domain.document import LocationDocument
-from domain.region import Region, Do, Gu, UbMynDong, Empty, Si
 from utils import regexs
-
-EMPTY_REGION = Empty()
 
 
 @dataclass
-class City:
-    do: Region
-    si: Region
-    gun: Region
-    gu: Region
-    ub_myn_dong: Region
-    legal_names: List[str]
+class AbstractCity:
+    dong_code: str = ''
+    parent: str = ''
+    name: str = ''
+    legal_names: List[str] = None
 
-    def __init__(self, response: PdrResponse):
-        self.legal_names = response.legal_names if response.legal_names else []
-
-        do = EMPTY_REGION
-        si = EMPTY_REGION
-        gun = EMPTY_REGION
-        gu = EMPTY_REGION
-        ub_myn_dong = EMPTY_REGION
-
-        if regexs.DO.match(response.sido_name):
-            do = Do(response.sido_name)
-
-        if regexs.SI.match(response.sido_name):
-            si = Si(response.sido_name)
-
-        si_gun_tokens = response.si_gun_gu_name.strip().split(' ')
-
-        # 시군구 값에 따라 시/군/구 클래스로 분리
-        if regexs.SI.match(si_gun_tokens[0]):
-            # ex) 용인시
-            si = Si(si_gun_tokens[0])
-
-        if regexs.GU.match(si_gun_tokens[0]):
-            # ex) 종로구
-            gu = Gu(si_gun_tokens[0])
-
-        if len(si_gun_tokens) == 2:
-            # ex) 용인시 기흥구
-            si = Si(si_gun_tokens[0])
-            gu = Gu(si_gun_tokens[1])
-
-        if response.dong_name != '':
-            ub_myn_dong = UbMynDong(response.dong_name)
-
-        self.do = do
-        self.si = si
-        self.gun = gun
-        self.gu = gu
-        self.ub_myn_dong = ub_myn_dong
+    @abstractmethod
+    def alias(self) -> List[str]:
+        pass
 
     def to_document(self) -> LocationDocument:
-        do_names = self.do.names()
-        si_gun_names = self.si.names() + self.gun.names()
-        gu_names = self.gu.names()
-        ub_myn_dong_names = self.ub_myn_dong.names()
-        legal_names = self.legal_names
-        if len(ub_myn_dong_names) >= 1 and ub_myn_dong_names[0] == 'a':
-            print(self.ub_myn_dong)
-            print(self.legal_names)
+        search_words = list(set([self.name] + self.alias()))
+        return LocationDocument(self.dong_code, self.parent, self.name, search_words)
 
-        return LocationDocument(
-            do=do_names,
-            si_gun=si_gun_names,
-            gu=gu_names,
-            ub_myn_dong=ub_myn_dong_names,
-            legal_names=legal_names
-        )
+
+class Sido(AbstractCity, ABC):
+
+    def alias(self) -> List[str]:
+        if self.name == "경기도":
+            return ["경기"]
+        elif self.name == "충청북도":
+            return ["충북"]
+        elif self.name == "충청남도":
+            return ["충남"]
+        elif self.name == "전라남도":
+            return ["전남"]
+        elif self.name == "경상북도":
+            return ["경북"]
+        elif self.name == "경상남도":
+            return ["경남"]
+        elif self.name == "전북특별자치도" or self.name == '전라북도':
+            return ["전라북도", "전북"]
+        elif '강원' in self.name:
+            return ["강원도", "강원"]
+        elif '제주' in self.name:
+            return ["제주도", "제주"]
+        elif '서울' in self.name:
+            return ["서울시", "서울"]
+        elif '부산' in self.name:
+            return ["부산시", "부산"]
+        elif '대구' in self.name:
+            return ["대구시", "대구"]
+        elif '인천' in self.name:
+            return ["인천시", "인천"]
+        elif '광주' in self.name:
+            return ["광주시", "광주"]
+        elif '대전' in self.name:
+            return ["대전시", "대전"]
+        elif self.name == "울산광역시":
+            return ["울산시", "울산"]
+        elif self.name == "세종특별자치시":
+            return ["세종시", "세종"]
+        elif self.name == "경기도":
+            return ["경기"]
+        elif self.name == "충청북도":
+            return ["충북"]
+        elif self.name == "충청남도":
+            return ["충남"]
+        elif self.name == "전라남도":
+            return ["전남"]
+        elif self.name == "경상북도":
+            return ["경북"]
+        elif self.name == "경상남도":
+            return ["경남"]
+        elif self.name == "전북특별자치도" or self.name == '전라북도':
+            return ["전라북도", "전북"]
+        elif '강원' in self.name:
+            return ["강원도", "강원"]
+        elif '제주' in self.name:
+            return ["제주도", "제주"]
+        elif len(self.name) >= 3:
+            return [self.name[:-1]]
+        else:
+            raise Exception("별칭 생성에 실패한 시/도 입니다.", self.name)
+
+
+class SiGunGu(AbstractCity, ABC):
+    def __init__(self, dong_code: str, parent: str, name: str):
+        self.dong_code = dong_code
+
+        tokens = name.split(' ')
+        if len(tokens) > 1:
+            self.parent = parent + ' ' + tokens[0]
+            self.name = tokens[1]
+        else:
+            self.parent = parent
+            self.name = name
+
+    def alias(self) -> List[str]:
+        # 지역이 구일 때, 방향을 의미하는 구는 별칭을 갖지 않는다. 예시) 서북구, 동남구, 북구 등
+        if regexs.ONLY_DIRECTION_GU.match(self.name) or len(self.name) <= 2:
+            return []
+
+        return [self.name[:-1]]
+
+
+class UpMynDong(AbstractCity, ABC):
+    # 지역이 읍면동일 때, 별칭은 법정동을 가공하여 만든다
+    def alias(self) -> List[str]:
+        alias = copy.deepcopy(self.legal_names)
+        for legal_name in self.legal_names:
+            if len(legal_name) < 3:
+                continue
+            if regexs.UB_MYN_RI.match(legal_name):  # 읍, 면, 리 제외
+                continue
+            if regexs.ONLY_DIRECTION.match(legal_name):  # 남서동, 남북동
+                continue
+            if re.compile('.*[동서남북]동$').match(legal_name) and len(legal_name) >= 4:  # 대부동동, 대부북동, 이현북동, 이현남동
+                continue
+            if re.compile('.*[일이삼사오육칠팔구]동$').match(legal_name) and len(legal_name) >= 4:  # 이호일동, 이호이동, 도두일동, 도두이동
+                continue
+            if re.compile('.*[0-9]가').match(legal_name):
+                alias_word = legal_name[:-2]
+                alias.append(alias_word)
+                if alias_word.endswith('동'):
+                    alias.append(alias_word[:-1])
+            else:
+                alias.append(legal_name[:-1])
+
+        return list(alias)
+
+
+class CityFactory:
+    @staticmethod
+    def create(response: PdrResponse) -> AbstractCity:
+        if response.sido_name != '' and response.si_gun_gu_name == '' and response.dong_name == '':
+            return Sido(dong_code=response.dong_code, name=response.sido_name)
+
+        if response.sido_name != '' and response.si_gun_gu_name != '' and response.dong_name == '':
+            return SiGunGu(
+                dong_code=response.dong_code,
+                parent=response.sido_name,
+                name=response.si_gun_gu_name)
+
+        return UpMynDong(
+            dong_code=response.dong_code,
+            parent=response.sido_name + ' ' + response.si_gun_gu_name,
+            name=response.dong_name,
+            legal_names=response.legal_names)

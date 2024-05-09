@@ -1,7 +1,7 @@
 {
   "mappings": {
     "properties": {
-      "depth1_do": {
+      "parent": {
         "type": "text",
         "fields": {
           "keywords": {
@@ -9,7 +9,7 @@
           }
         }
       },
-      "depth2_si_gun": {
+      "name": {
         "type": "text",
         "fields": {
           "keywords": {
@@ -17,23 +17,7 @@
           }
         }
       },
-      "depth3_gu": {
-        "type": "text",
-        "fields": {
-          "keywords": {
-            "type": "keyword"
-          }
-        }
-      },
-      "depth4_ub_myn_dong": {
-        "type": "text",
-        "fields": {
-          "keywords": {
-            "type": "keyword"
-          }
-        }
-      },
-      "legal_names": {
+      "search_words": {
         "type": "text",
         "fields": {
           "keywords": {
