@@ -24,6 +24,7 @@ class ElasticsearchClient:
                 '_id': doc.id,
                 'doc': {
                     "name": doc.name,
+                    "parent": doc.parent,
                     "search_words": doc.search_words,
                 },
                 'doc_as_upsert': True

@@ -22,7 +22,28 @@ class AbstractCity:
 
     def to_document(self) -> LocationDocument:
         search_words = list(set([self.name] + self.alias()))
-        return LocationDocument(self.dong_code, self.parent, self.name, search_words)
+
+        '''
+        하위 지역과 상위 지역의 별칭이 중복될 경우, 하위 지역의 별칭을 제거한다.
+        예를들어, 안양[1-6]동의 별칭에는 '안양'이 포함된다.
+        시군구에 해당하는 안양시에도 '안양'이 포함된다.
+        '안양'으로 검색할 경우, '안양[1-6]동'는 제외하고, '안양시'만 검색되도록 작업이 필요하다.
+        '''
+        search_words_process = []
+
+        for search_word in search_words:
+            exist_over_depth = False
+            for parent_token in self.parent.split(' '):
+                if parent_token.startswith(search_word):
+                    exist_over_depth = True
+            if not exist_over_depth:
+                search_words_process.append(search_word)
+
+        # 정렬 후 길이가 1인 단어를 제거
+        search_words_process.sort()
+        search_words_process = list(filter(lambda x: len(x) > 1, search_words_process))
+
+        return LocationDocument(self.dong_code, self.parent, self.name, search_words_process)
 
 
 class Sido(AbstractCity, ABC):
@@ -107,10 +128,11 @@ class SiGunGu(AbstractCity, ABC):
 
 
 class UpMynDong(AbstractCity, ABC):
-    # 지역이 읍면동일 때, 별칭은 법정동을 가공하여 만든다
     def alias(self) -> List[str]:
-        alias = copy.deepcopy(self.legal_names)
-        for legal_name in self.legal_names:
+        before_process: List[str] = self.legal_names + [self.name]  # 읍면동일 때, 별칭은 행정동 및 법정동을 가공하여 만든다
+        after_process: List[str] = []
+
+        for legal_name in before_process:
             if len(legal_name) < 3:
                 continue
             if regexs.UB_MYN_RI.match(legal_name):  # 읍, 면, 리 제외
@@ -123,13 +145,13 @@ class UpMynDong(AbstractCity, ABC):
                 continue
             if re.compile('.*[0-9]가').match(legal_name):
                 alias_word = legal_name[:-2]
-                alias.append(alias_word)
-                if alias_word.endswith('동'):
-                    alias.append(alias_word[:-1])
+                after_process.append(alias_word)
+                if alias_word.endswith('동') and len(alias_word) > 2:
+                    after_process.append(alias_word[:-1])
             else:
-                alias.append(legal_name[:-1])
+                after_process.append(legal_name[:-1])
 
-        return list(alias)
+        return before_process + after_process
 
 
 class CityFactory:
