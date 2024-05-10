@@ -1,7 +1,7 @@
 import json
 from typing import List
 
-from elasticsearch import Elasticsearch, helpers
+from elasticsearch import Elasticsearch, helpers, NotFoundError
 
 from domain.document import LocationDocument
 
@@ -32,7 +32,10 @@ class ElasticsearchClient:
         helpers.bulk(self.es_client, commands)
 
     def get_index_by_alias(self, alias: str):
-        return self.es_client.indices.get_alias(name=alias)
+        try:
+            return self.es_client.indices.get_alias(name=alias)
+        except NotFoundError:
+            return dict()
 
     def delete_index_by_alias(self, alias: str):
         indices: dict = self.get_index_by_alias(alias)
