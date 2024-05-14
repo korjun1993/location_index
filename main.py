@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import List
 
 import pandas
@@ -10,8 +9,7 @@ from es.client import ElasticsearchClient
 from es.config import ES_CONFIG
 
 ES_CLIENT = ElasticsearchClient(**ES_CONFIG)
-INDEX_NAME = f'location_map_{datetime.now().strftime("%Y%m%d%H%M%S")}'
-INDEX_ALIAS_NAME = 'active_location_map'
+INDEX_NAME = 'location_map'
 
 
 def default_settings():
@@ -31,11 +29,8 @@ def make_documents() -> List[LocationDocument]:
 
 if __name__ == '__main__':
     default_settings()
+    ES_CLIENT.delete_index_by_name(INDEX_NAME)
     docs = make_documents()
     ES_CLIENT.create_index(INDEX_NAME)
     ES_CLIENT.bulk_upsert(INDEX_NAME, docs)
     ES_CLIENT.refresh_index(INDEX_NAME)
-    ES_CLIENT.delete_index_by_alias(INDEX_ALIAS_NAME)
-    ES_CLIENT.update_alias(INDEX_NAME, INDEX_ALIAS_NAME)
-
-

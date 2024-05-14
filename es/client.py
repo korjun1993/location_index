@@ -1,4 +1,5 @@
 import json
+import logging
 from typing import List
 
 from elasticsearch import Elasticsearch, helpers, NotFoundError
@@ -31,19 +32,14 @@ class ElasticsearchClient:
             })
         helpers.bulk(self.es_client, commands)
 
-    def get_index_by_alias(self, alias: str):
+    def delete_index_by_name(self, index_name: str):
         try:
-            return self.es_client.indices.get_alias(name=alias)
+            indices: dict = self.es_client.indices.get(index=index_name)
         except NotFoundError:
-            return dict()
-
-    def delete_index_by_alias(self, alias: str):
-        indices: dict = self.get_index_by_alias(alias)
+            logging.info(f"Index {index_name} not found")
+            return
         for index_name in indices.keys():
             self.es_client.indices.delete(index=index_name)
-
-    def update_alias(self, index_name: str, alias: str):
-        self.es_client.indices.put_alias(index=index_name, name=alias)
 
     def delete_index(self, index_name):
         self.es_client.delete(index=index_name)
