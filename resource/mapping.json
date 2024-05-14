@@ -2,28 +2,13 @@
   "mappings": {
     "properties": {
       "parent": {
-        "type": "text",
-        "fields": {
-          "keywords": {
-            "type": "keyword"
-          }
-        }
+        "type": "text"
       },
       "name": {
-        "type": "text",
-        "fields": {
-          "keywords": {
-            "type": "keyword"
-          }
-        }
+        "type": "text"
       },
       "search_words": {
-        "type": "text",
-        "fields": {
-          "keywords": {
-            "type": "keyword"
-          }
-        }
+        "type": "text"
       }
     }
   },
