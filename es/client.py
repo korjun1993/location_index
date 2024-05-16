@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 from typing import List
 
 from elasticsearch import Elasticsearch, helpers, NotFoundError
@@ -12,7 +13,9 @@ class ElasticsearchClient:
         self.es_client = Elasticsearch(hosts, http_auth=(username, password))
 
     def create_index(self, index_name):
-        with open('resource/mapping.json', 'r') as file:
+        env = os.environ['PROFILE']
+        mapping_file_path = f'mapping_{env}'
+        with open(mapping_file_path, 'r') as file:
             mapping = json.load(file)
             self.es_client.indices.create(index=index_name, body=mapping)
 

@@ -1,3 +1,4 @@
+import os
 from typing import List
 
 import pandas
@@ -5,10 +6,10 @@ import pandas
 from api import pdr_api
 from domain.city import CityFactory
 from domain.document import LocationDocument
+from es import config
 from es.client import ElasticsearchClient
-from es.config import ES_CONFIG
 
-ES_CLIENT = ElasticsearchClient(**ES_CONFIG)
+ES_CLIENT = ElasticsearchClient(**config.es_client())
 INDEX_NAME = 'location_map'
 
 
